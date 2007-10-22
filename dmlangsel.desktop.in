@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Categories=GNOME;GTK;Settings;DesktopSettings;X-SuSE-ControlCenter-LookAndFeel;
+Exec=dmlangsel
+Icon=config-language
+OnlyShowIn=GNOME;
+StartupNotify=true
+Terminal=false
+TryExec=dmlangsel
+Type=Application
+_Comment=Select the language used by applications
+_GenericName=Language
+_Name=Language

@@ -1,0 +1,38 @@
+Summary: A language picker
+Name: dmlangsel
+Version: @VERSION@
+Release: 1
+License: GPL
+Group: System/Tools
+URL: http://code.google.com/p/dmlangsel/
+Source0: %{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+
+%description
+
+%prep
+%setup -q
+
+%build
+%configure
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+%makeinstall
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root,-)
+%doc
+%{_bindir}/dmlangsel
+%{_datadir}/applications/dmlangsel.desktop
+%{_datadir}/locale/*/LC_MESSAGES/dmlangsel.mo
+
+%changelog
+* Wed Oct 10 2007 jacob berkman <jberkman@novell.com> - 
+- Initial build.
+
