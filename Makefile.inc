@@ -41,6 +41,3 @@ gdmlanguages.c: $(compat_headers)
 
 $(compat_headers):
 	echo '#include "dmlangsel-compat-gdm.h"' > $@
-
-rpm: dist-gzip
-	rpmbuild -tb $(distdir).tar.gz

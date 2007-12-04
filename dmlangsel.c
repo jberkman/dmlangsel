@@ -1,16 +1,27 @@
 #include "config.h"
 
 #include "dmlangsel.h"
+#include "dmlangsel-compat-gdm.h"
 
 #include <gtk/gtkliststore.h>
 #include "gdmlanguages.h"
+#include "gdm-common-config.h"
 
 #include <gtk/gtk.h>
 
 #include <glib/gi18n.h>
+#include <glib/gstdio.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#define LAST_LANGUAGE "Last"
+#define DEFAULT_LANGUAGE "Default"
 
 static struct {
     char *lang;
+    char *orig_lang;
     GtkListStore *model;
     GtkWidget *window;
     GtkWidget *list;
@@ -48,6 +59,13 @@ selection_changed (GtkTreeSelection *selection,
     if (gtk_tree_selection_get_selected (selection, NULL, &iter)) {
         g_free (dm.lang);
         gtk_tree_model_get (GTK_TREE_MODEL (dm.model), &iter, LOCALE_COLUMN, &dm.lang, -1);
+        if (!strcmp (dm.lang, DEFAULT_LANGUAGE)) {
+            g_free (dm.lang);
+            dm.lang = g_strdup ("");
+        } else if (!strcmp (dm.lang, LAST_LANGUAGE)) {
+            g_free (dm.lang);
+            dm.lang = g_strdup (dm.orig_lang);
+        }
         update_for_lang ();
         if (dm.running) {
             gtk_widget_show (dm.hbox);
@@ -122,6 +140,10 @@ select_lang (char *language)
 
    DMLS_ENTER;
 
+   if (!*language) {
+       language = DEFAULT_LANGUAGE;
+   }
+
    selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (dm.list));
    gtk_tree_selection_unselect_all (selection);
 
@@ -148,33 +170,32 @@ select_lang (char *language)
 static char *
 load_lang (void)
 {
-    char *lang;
     DMLS_ENTER;
 
-    gdm_daemon_config_get_user_session_lang (NULL, &lang, g_get_home_dir (), NULL);
+    gdm_daemon_config_get_user_session_lang (NULL, &dm.orig_lang, g_get_home_dir (), NULL);
 
-    if (!*lang) {
+    if (!*dm.orig_lang) {
         const gchar * const *langs;
         int i;
 
-        g_free (lang);
-        lang = NULL;
+        g_free (dm.orig_lang);
+        dm.orig_lang = NULL;
         
         langs = g_get_language_names ();
         for (i = 0; langs[i]; i++) {
             if (gdm_common_locale_is_displayable (langs[i])) {
-                lang = g_strdup (langs[i]);
+                dm.orig_lang = g_strdup (langs[i]);
                 break;
             }
         }
-        if (!lang) {
-            lang = g_strdup ("");
+        if (!dm.orig_lang) {
+            dm.orig_lang = g_strdup ("");
         }
     }
-    DMLS_TRACE ("got our lang: %s", lang);
+    DMLS_TRACE ("got our lang: %s", dm.orig_lang);
 
     DMLS_EXIT;
-    return lang;
+    return dm.orig_lang;
 }
 
 static void
@@ -217,12 +238,16 @@ get_model (void)
     if (!aliases[i]) {
         gdm_lang_initialize_model ("/dev/null");
     }
-    
+
     model = gdm_lang_get_model ();
     gtk_tree_model_get_iter_first (GTK_TREE_MODEL (model), &iter);
-    /* remove "last" and "system" */
+
+    /* remove "last language" */
     gtk_list_store_remove (model, &iter);
+#if 0
+    /* remove "system default" */
     gtk_list_store_remove (model, &iter);
+#endif
 
     DMLS_EXIT;
 
@@ -271,9 +296,41 @@ get_dialog (void)
     return w;
 }
 
+static void
+init_dmrc (void)
+{
+    GError *err = NULL;
+    GKeyFile *dmrc;
+    char *cfgstr;
+
+    DMLS_ENTER;
+
+    /* not all calls to gdm_common_config_load() create it if it
+     * fails, so just do that here */
+    
+    cfgstr = g_build_filename (g_get_home_dir (), ".dmrc", NULL);
+    dmrc = gdm_common_config_load (cfgstr, NULL);
+    if (dmrc == NULL) {
+        gint fd = -1;
+        gdm_debug ("file: %s does not exist - creating it", cfgstr);
+        VE_IGNORE_EINTR (fd = g_open (cfgstr, O_CREAT | O_TRUNC | O_RDWR, 0644));
+        if (fd < 0) {
+            DMLS_EXIT;
+            return;
+        }
+        write (fd, "\n", 2);
+        close (fd);
+    } else {
+        g_key_file_free (dmrc);
+    }
+    DMLS_EXIT;
+}
+
 int
 main (int argc, char *argv[])
 {
+    char *cfgstr;
+
     DMLS_ENTER;
 
     setlocale (LC_ALL, "");
@@ -282,6 +339,8 @@ main (int argc, char *argv[])
     textdomain(PACKAGE_NAME);
 
     gtk_init (&argc, &argv);
+
+    init_dmrc ();
 
     dm.model = get_model ();
 
