@@ -654,12 +654,12 @@ gdm_lang_read_locale_file (const char *locale_file)
 
 	g_hash_table_foreach (dupcheck, (GHFunc) g_free, NULL);
 	g_hash_table_destroy (dupcheck);
-
+#if 0
 	/* If we haven't found any english locale, add american
 	 * english as that's as much of a fallback as we can get */
 	if ( ! got_english)
 		langs = g_list_prepend (langs, g_strdup ("en_US"));
-
+#endif
 	curlocale = setlocale (LC_MESSAGES, NULL);
 	if (curlocale != NULL &&
 	    strcmp (curlocale, "C") != 0 &&
