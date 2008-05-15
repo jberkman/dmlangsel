@@ -46,7 +46,7 @@ update_for_lang ()
         gtk_button_set_label (GTK_BUTTON (dm.close), GTK_STOCK_CLOSE);
     }
     if (dm.notice) {
-        gtk_label_set_text (GTK_LABEL (dm.notice), _("Changes will take effect next time you log in."));
+        gtk_label_set_markup (GTK_LABEL (dm.notice), _("<b>Changes will take effect next time you log in.</b>"));
     }
 }
 
