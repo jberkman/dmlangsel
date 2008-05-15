@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([dmlangsel], [0.5], [jberkman@novell.com])
+AC_INIT([dmlangsel], [0.6], [http://code.google.com/p/loolixbodes/issues/entry])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([gdmlanguages.c])
 AC_CONFIG_HEADER([config.h])
